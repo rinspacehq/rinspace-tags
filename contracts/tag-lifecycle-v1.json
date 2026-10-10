@@ -1,0 +1,25 @@
+{
+  "schema": "tag-lifecycle/v1",
+  "requests": [
+    {
+      "operation": "merge",
+      "tagId": 17,
+      "targetTagId": 23,
+      "baseVersion": 4,
+      "actorId": "curator",
+      "idempotencyKey": "merge-17",
+      "reason": "equivalent identity",
+      "operationId": "tag-life-c32cba309c00fb545e0ffbe8ad4a1391",
+      "requestHash": "0bf900d6eefbc3eb9ff7ced89015b7e183225e821e1df72ccb90a987ba6d7e36"
+    }
+  ],
+  "transitions": [
+    { "operation": "archive", "currentLifecycle": "active", "targetTagId": 0, "targetLifecycle": "", "resultLifecycle": "archived", "externalAction": "archive", "operationState": "main_committed" },
+    { "operation": "archive", "currentLifecycle": "deprecated", "targetTagId": 0, "targetLifecycle": "", "resultLifecycle": "archived", "externalAction": "archive", "operationState": "main_committed" },
+    { "operation": "restore", "currentLifecycle": "archived", "targetTagId": 0, "targetLifecycle": "", "resultLifecycle": "active", "externalAction": "restore", "operationState": "main_committed" },
+    { "operation": "deprecate", "currentLifecycle": "active", "targetTagId": 0, "targetLifecycle": "", "resultLifecycle": "deprecated", "externalAction": "", "operationState": "completed" },
+    { "operation": "deprecate", "currentLifecycle": "active", "targetTagId": 23, "targetLifecycle": "active", "resultLifecycle": "deprecated", "externalAction": "", "operationState": "completed" },
+    { "operation": "merge", "currentLifecycle": "active", "targetTagId": 23, "targetLifecycle": "active", "resultLifecycle": "merged", "externalAction": "archive", "operationState": "main_committed" },
+    { "operation": "merge", "currentLifecycle": "deprecated", "targetTagId": 23, "targetLifecycle": "active", "resultLifecycle": "merged", "externalAction": "archive", "operationState": "main_committed" }
+  ]
+}
