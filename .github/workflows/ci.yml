@@ -12,12 +12,43 @@ concurrency:
   group: rinspace-tags-ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  GOMAXPROCS: "1"
+
 jobs:
-  go:
+  checks:
+    name: ${{ matrix.name }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    env:
-      GOMAXPROCS: "1"
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - name: Module files
+            command: |
+              go mod tidy
+              git diff --exit-code -- go.mod go.sum
+          - name: Core tests
+            command: go test -p 1 -count=1 ./core/...
+          - name: Contract tests
+            command: go test -p 1 -count=1 ./contracts/...
+          - name: CLI tests
+            command: go test -p 1 -count=1 ./cmd/...
+          - name: Static analysis
+            command: go vet -p 1 ./...
+          - name: Build
+            command: go build -p 1 ./...
+          - name: Source boundary
+            command: |
+              workspace_pattern='/home''/ubuntu'
+              private_module_pattern='rinspace/''server'
+              if grep -R -n -E "${workspace_pattern}|${private_module_pattern}" --exclude-dir=.git .; then
+                echo 'private workspace or module reference found' >&2
+                exit 1
+              fi
+          - name: Synthetic graph
+            command: go run ./cmd/rinspace-tagsctl validate -file examples/synthetic-knowledge-base/graph.json
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
@@ -26,23 +57,22 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      - name: Verify module files
+      - name: Run ${{ matrix.name }}
+        run: ${{ matrix.command }}
+
+  go:
+    name: go
+    if: ${{ always() }}
+    needs: [checks]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Require every named check
+        env:
+          CHECKS_RESULT: ${{ needs.checks.result }}
         run: |
-          go mod tidy
-          git diff --exit-code -- go.mod go.sum
-      - name: Test
-        run: go test -p 1 -count=1 ./...
-      - name: Vet
-        run: go vet ./...
-      - name: Build
-        run: go build ./...
-      - name: Verify source boundary
-        run: |
-          workspace_pattern='/home''/ubuntu'
-          private_module_pattern='rinspace/''server'
-          if grep -R -n -E "${workspace_pattern}|${private_module_pattern}" --exclude-dir=.git .; then
-            echo 'private workspace or module reference found' >&2
+          if [ "${CHECKS_RESULT}" != 'success' ]; then
+            echo '::error title=CI checks failed::Open the named failed check above for the exact failing category and log.'
             exit 1
           fi
-      - name: Validate synthetic graph
-        run: go run ./cmd/rinspace-tagsctl validate -file examples/synthetic-knowledge-base/graph.json
+          echo 'All named CI checks passed.'
