@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "rinspace-tags-graph/v1",
+  "tags": [
+    {
+      "id": 1,
+      "displayName": "Mathematics",
+      "normalizedName": "mathematics",
+      "parentTagIds": [],
+      "lifecycle": "active",
+      "version": 1
+    },
+    {
+      "id": 2,
+      "displayName": "Geometry",
+      "normalizedName": "geometry",
+      "parentTagIds": [1],
+      "lifecycle": "active",
+      "version": 1
+    },
+    {
+      "id": 3,
+      "displayName": "Physics",
+      "normalizedName": "physics",
+      "parentTagIds": [],
+      "lifecycle": "active",
+      "version": 1
+    },
+    {
+      "id": 4,
+      "displayName": "Geometry",
+      "normalizedName": "geometry",
+      "parentTagIds": [3],
+      "lifecycle": "active",
+      "version": 1
+    },
+    {
+      "id": 5,
+      "displayName": "Differential Geometry",
+      "normalizedName": "differential geometry",
+      "parentTagIds": [2],
+      "lifecycle": "active",
+      "version": 1
+    },
+    {
+      "id": 6,
+      "displayName": "requires",
+      "normalizedName": "requires",
+      "parentTagIds": [],
+      "lifecycle": "active",
+      "version": 1
+    }
+  ],
+  "aliases": [
+    {
+      "displayName": "Diff Geo",
+      "normalizedName": "diff geo",
+      "tagId": 5,
+      "active": true
+    }
+  ],
+  "statements": [
+    {
+      "id": "synthetic-requires-1",
+      "subjectTagId": 5,
+      "predicateTagId": 6,
+      "objectTagId": 2,
+      "reviewState": "approved",
+      "rank": 0
+    }
+  ],
+  "vocabulary": {
+    "requires": 6
+  }
+}

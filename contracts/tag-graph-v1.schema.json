@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rinspacehq/rinspace-tags/contracts/tag-graph-v1.schema.json",
+  "title": "Rinspace Tags relationship graph snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "tags"],
+  "properties": {
+    "schemaVersion": { "const": "rinspace-tags-graph/v1" },
+    "tags": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/tag" }
+    },
+    "aliases": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/alias" }
+    },
+    "statements": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/statement" }
+    },
+    "vocabulary": {
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 1 }
+    }
+  },
+  "$defs": {
+    "positiveId": { "type": "integer", "minimum": 1 },
+    "tag": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "displayName", "normalizedName", "parentTagIds", "lifecycle", "version"],
+      "properties": {
+        "id": { "$ref": "#/$defs/positiveId" },
+        "displayName": { "type": "string", "minLength": 1 },
+        "normalizedName": { "type": "string", "minLength": 1 },
+        "parentTagIds": {
+          "type": "array",
+          "maxItems": 12,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/positiveId" }
+        },
+        "lifecycle": { "enum": ["active", "deprecated", "archived", "merged"] },
+        "successorTagId": { "$ref": "#/$defs/positiveId" },
+        "version": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "alias": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["displayName", "normalizedName", "tagId", "active"],
+      "properties": {
+        "displayName": { "type": "string", "minLength": 1 },
+        "normalizedName": { "type": "string", "minLength": 1 },
+        "tagId": { "$ref": "#/$defs/positiveId" },
+        "active": { "type": "boolean" }
+      }
+    },
+    "statement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "subjectTagId", "predicateTagId", "objectTagId", "reviewState", "rank"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "subjectTagId": { "$ref": "#/$defs/positiveId" },
+        "predicateTagId": { "$ref": "#/$defs/positiveId" },
+        "objectTagId": { "$ref": "#/$defs/positiveId" },
+        "contextTagId": { "$ref": "#/$defs/positiveId" },
+        "reviewState": { "enum": ["proposed", "approved", "rejected", "superseded"] },
+        "rank": { "type": "integer", "minimum": -1000, "maximum": 1000 }
+      }
+    }
+  }
+}

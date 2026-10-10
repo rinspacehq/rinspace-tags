@@ -1,0 +1,48 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rinspace-tags-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GOMAXPROCS: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Verify module files
+        run: |
+          go mod tidy
+          git diff --exit-code -- go.mod go.sum
+      - name: Test
+        run: go test -p 1 -count=1 ./...
+      - name: Vet
+        run: go vet ./...
+      - name: Build
+        run: go build ./...
+      - name: Verify source boundary
+        run: |
+          workspace_pattern='/home''/ubuntu'
+          private_module_pattern='rinspace/''server'
+          if grep -R -n -E "${workspace_pattern}|${private_module_pattern}" --exclude-dir=.git .; then
+            echo 'private workspace or module reference found' >&2
+            exit 1
+          fi
+      - name: Validate synthetic graph
+        run: go run ./cmd/rinspace-tagsctl validate -file examples/synthetic-knowledge-base/graph.json
