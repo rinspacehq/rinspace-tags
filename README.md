@@ -15,6 +15,8 @@ The first source candidate focuses on the relationship kernel:
 - multiple direct parents in a directed acyclic classification graph;
 - aliases that resolve to Tags without becoming Tags themselves;
 - lifecycle successors that preserve identity through merges;
+- deterministic merge, deprecate, archive, and restore transition plans with
+  replay-compatible idempotency identities;
 - governed semantic statements, beginning with acyclic `requires` relations;
 - deterministic validation and ancestor/descendant projections.
 
@@ -60,6 +62,11 @@ The current candidate does not yet include the PostgreSQL reference store,
 standalone HTTP service, Gitea/Renderer adapters, OIDC integration, or
 TypeScript SDK. Those layers will use the same core rather than implement a
 parallel Tag model.
+
+`core/lifecycle` validates lifecycle intent and produces a pure transition
+plan. The consuming adapter locks rows, checks product-specific name contexts,
+applies associations, writes audit/outbox records, and performs external
+repository actions in its own transaction boundary.
 
 ## Relationship semantics
 
