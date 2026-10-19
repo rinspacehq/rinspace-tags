@@ -5,7 +5,7 @@
 芥子环标签系统是芥子环组织知识关系的核心。这里的 Tag 不是附在内容上的普通字符串；
 它具有稳定身份，可以同时成为分类节点、知识条目、引用目标和受治理关系的端点。
 
-首个源码候选集中交付关系内核：
+当前已发行内核提供：
 
 - 永不以名称或 slug 代替的正整数稳定 Tag ID；
 - Unicode 规范化名称与互不重叠的直接父级语境；
@@ -18,18 +18,50 @@
 
 芥子环不设置硬编码的 `tag_type`。知识角色来自语境、明确关系和受治理词表。
 
+## 架构与技术栈
+
+本仓库是**可嵌入的 Go 领域库**，不是前端框架，也不是已经完整交付的独立标签服务。
+核心不依赖 HTTP 框架、数据库、芥子环账号或渲染服务。
+
+| 层次 | 当前实现 | 归属 |
+| --- | --- | --- |
+| 名称与关系 | Go 1.24+、`golang.org/x/text`；稳定 ID、名称语境、多父 DAG、别名与关系校验 | 公开 `core/graph` |
+| 生命周期计划 | 纯 Go 命令、重放校验与确定性状态迁移计划 | 公开 `core/lifecycle` |
+| 本地校验 | Go CLI 与版本化 JSON 契约 | 公开 `cmd/rinspace-tagsctl`、`contracts` |
+| 网站与 API | React + TypeScript + Vite；Go + Gin | [Rinspace Web](https://github.com/rinspacehq/rinspace-web) 与芥子环宿主应用，不属于本核心 |
+| 存储与集成 | PostgreSQL，使用 Go `database/sql`；权限、事务、审计/outbox 与发布编排 | 芥子环私仓适配层 |
+| Wiki 源码与渲染 | [Gitea](https://github.com/rinspacehq/gitea) 的 Git 仓库；[Rinspace Renderer](https://github.com/rinspacehq/rinspace-renderer) | 独立项目，经宿主 Control Plane 接入 |
+
+当前采用进程内 Go module 消费，不是另起一个 Tags 微服务。下图展示现有边界；
+分类图存储在 PostgreSQL 中，不要求另部署图数据库。
+
 ```mermaid
-flowchart LR
-    ID[稳定 Tag ID] --> CLASS[直接父级分类 DAG]
-    ID --> ALIAS[别名]
-    ID --> LIFE[生命周期后继]
-    ID --> STMT[受治理陈述]
-    STMT --> REQ[requires]
-    CLASS --> CONTEXT[名称语境]
-    CORE[Go 关系内核] --> ID
-    PRODUCT[芥子环私有适配层] --> CORE
-    LOCAL[本地校验器 / 后续独立服务] --> CORE
+flowchart TB
+    subgraph HOST["芥子环宿主应用"]
+        WEB["React / TypeScript / Vite"] --> API["Go / Gin API"]
+        API --> ADAPTER["私有适配层：身份、策略与事务"]
+        ADAPTER --> DB[(PostgreSQL)]
+        ADAPTER --> CP["Control Plane：发布编排"]
+    end
+    subgraph PUBLIC["rinspace-tags：公开 Go module"]
+        GRAPH["core/graph：名称与关系规则"]
+        LIFE["core/lifecycle：请求与状态迁移计划"]
+        CLI["本地校验 CLI"] --> GRAPH
+    end
+    ADAPTER -->|"固定版本 Go module"| GRAPH
+    ADAPTER -->|"固定版本 Go module"| LIFE
+    CP <--> GIT["Gitea：Wiki Git 历史"]
+    CP <--> RENDER["Rinspace Renderer：文档结果"]
 ```
+
+### 迁移状态
+
+芥子环私仓已经固定消费
+[`v0.2.0-rc.1`](https://github.com/rinspacehq/rinspace-tags/releases/tag/v0.2.0-rc.1)，
+并实际调用公共名称规范化与生命周期计划接口。这是**部分接入**，不是整个标签系统
+已经完成开源迁移。完整治理命令、知识发布、PostgreSQL 参考存储，以及全路径消费与
+源码权威切换仍未完成。独立 HTTP 服务、OIDC、TypeScript SDK 和服务镜像属于后续计划，
+不是当前候选已交付的组件。
 
 ## 本地校验
 

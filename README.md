@@ -8,7 +8,7 @@ connected. A Tag is more than a label attached to content: it can be a
 classification node, a knowledge entry, a citation target, and the endpoint of
 reviewed semantic relations.
 
-The first source candidate focuses on the relationship kernel:
+The released kernel currently provides:
 
 - stable positive integer Tag IDs that are never replaced by names or slugs;
 - Unicode-normalised names with disjoint direct-parent contexts;
@@ -23,18 +23,53 @@ The first source candidate focuses on the relationship kernel:
 Rinspace does not assign a hard-coded `tag_type`. Knowledge roles come from
 context, explicit relationships, and governed vocabulary bindings.
 
+## Architecture and technology
+
+This repository is an **embeddable Go domain library**, not a frontend framework
+or a complete standalone Tag server. Its core has no HTTP framework, database,
+Rinspace account, or rendering-service dependency.
+
+| Layer | Current implementation | Ownership |
+| --- | --- | --- |
+| Names and relationships | Go 1.24+, `golang.org/x/text`; stable IDs, name contexts, multi-parent DAG, aliases and relation validation | Public `core/graph` |
+| Lifecycle planning | Pure Go commands, replay validation and deterministic transition plans | Public `core/lifecycle` |
+| Local validation | Go CLI and versioned JSON contracts | Public `cmd/rinspace-tagsctl` and `contracts` |
+| Website and API | React + TypeScript + Vite; Go + Gin | [Rinspace Web](https://github.com/rinspacehq/rinspace-web) and the Rinspace host application, not this core |
+| Persistence and integration | PostgreSQL via Go `database/sql`; permissions, transactions, audit/outbox and publishing orchestration | Rinspace private adapters |
+| Wiki source and rendering | Git repositories in [Gitea](https://github.com/rinspacehq/gitea); [Rinspace Renderer](https://github.com/rinspacehq/rinspace-renderer) | Separate projects, connected through the host Control Plane |
+
+The current integration is in-process Go module consumption, not a separate
+Tags microservice. The diagram shows that boundary; PostgreSQL stores the
+classification graph without requiring a separate graph database.
+
 ```mermaid
-flowchart LR
-    ID[Stable Tag ID] --> CLASS[Direct-parent classification DAG]
-    ID --> ALIAS[Aliases]
-    ID --> LIFE[Lifecycle successor]
-    ID --> STMT[Governed statements]
-    STMT --> REQ[requires]
-    CLASS --> CONTEXT[Name context]
-    CORE[Go relationship kernel] --> ID
-    PRODUCT[Rinspace private adapters] --> CORE
-    LOCAL[Local validator / future standalone service] --> CORE
+flowchart TB
+    subgraph HOST["Rinspace host application"]
+        WEB["React / TypeScript / Vite"] --> API["Go / Gin API"]
+        API --> ADAPTER["Private adapters: identity, policy and transactions"]
+        ADAPTER --> DB[(PostgreSQL)]
+        ADAPTER --> CP["Control Plane: publishing orchestration"]
+    end
+    subgraph PUBLIC["rinspace-tags: public Go module"]
+        GRAPH["core/graph: names and relationship rules"]
+        LIFE["core/lifecycle: request and transition plans"]
+        CLI["Local validation CLI"] --> GRAPH
+    end
+    ADAPTER -->|"Pinned Go module"| GRAPH
+    ADAPTER -->|"Pinned Go module"| LIFE
+    CP <--> GIT["Gitea: Wiki Git history"]
+    CP <--> RENDER["Rinspace Renderer: document results"]
 ```
+
+### Migration status
+
+Rinspace pins [`v0.2.0-rc.1`](https://github.com/rinspacehq/rinspace-tags/releases/tag/v0.2.0-rc.1)
+and calls the public name-normalization and lifecycle-planning APIs. This is
+**partial adoption**, not a completed migration of the whole Tag system.
+Full governance commands, knowledge publication, the PostgreSQL reference
+store, and full-path consumer/source-authority cutover remain unfinished.
+The standalone HTTP service, OIDC, TypeScript SDK and service image are planned,
+not shipped components of this candidate.
 
 ## Local validation
 
